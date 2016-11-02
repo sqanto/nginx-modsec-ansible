@@ -1,0 +1,30 @@
+---
+
+- name: "Download Rules"
+  get_url:
+    url: https://github.com/SpiderLabs/owasp-modsecurity-crs/zipball/master
+    dest: /usr/src/owasp-rules.zip
+    mode: 0655
+
+- name: "unzip rules" 
+  shell: unzip -o /usr/src/owasp-rules.zip -d /usr/src/
+
+- name: "copy setup rule"
+  command: cp /usr/src/SpiderLabs-owasp-modsecurity-crs-0475e92/modsecurity_crs_10_setup.conf.example /etc/nginx/
+  ignore_errors: True
+  become: Yes
+
+- name: "Start Loop for link modsecurity_%"
+  file: src=/usr/src/SpiderLabs-owasp-modsecurity-crs-0475e92/base_rules/{{ item }} dest=/etc/nginx/{{ item }} state=link
+  with_items:
+     - modsecurity_35_bad_robots.data
+     - modsecurity_35_scanners.data
+     - modsecurity_40_generic_attacks.data
+     - modsecurity_50_outbound.data
+     - modsecurity_50_outbound_malware.data
+
+- name: "all to one modsecurity file"
+  template: src=modsecurity.conf.j2 dest=/etc/nginx/modsecurity.conf
+
+
+

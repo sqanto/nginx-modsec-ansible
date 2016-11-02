@@ -1,0 +1,57 @@
+---
+
+- name: "Download nginx"
+  get_url:
+    url: http://nginx.org/download/nginx-{{ nginx_version }}.tar.gz
+    dest: /usr/src/nginx-{{ nginx_version }}.tar.gz
+    mode: 0655
+
+- name: "unTar nginx"
+  command: tar -xvzf /usr/src/nginx-{{ nginx_version }}.tar.gz
+  args:
+    chdir: /usr/src/
+
+#- shell: cd /usr/src/nginx-1.9.15/ && ./configure  --user=www-data  --group=www-data  --with-debug  --with-ipv6  --with-http_ssl_module  --add-module=../modsecurity-{{ modsec_version }}/nginx/modsecurity --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --prefix=/etc/nginx  && make && make install
+
+- name: "Configure and make nginx "
+  shell: cd /usr/src/nginx-{{ nginx_version }}/ && ./configure {{item}} && make && make install
+  with_items:
+    --user=www-data 
+    --group=www-data 
+    --with-debug 
+    --with-http_ssl_module 
+    --add-module=../modsecurity-{{ modsec_version }}/nginx/modsecurity 
+    --sbin-path=/usr/sbin/nginx 
+    --conf-path=/etc/nginx/nginx.conf 
+    --error-log-path=/var/log/nginx/error.log 
+    --http-log-path=/var/log/nginx/access.log 
+    --prefix=/etc/nginx 
+
+- name: "Copy unicode"
+  command: cp /usr/src/modsecurity-{{ modsec_version }}/unicode.mapping /etc/nginx/
+  ignore_errors: True
+  become: Yes
+
+- name: "Copy modsecurity.conf"
+  command: cp /usr/src/modsecurity-{{ modsec_version }}/modsecurity.conf /etc/nginx/
+  ignore_errors: True
+  become: true
+  become_user: root
+
+- name: "Template nginx.conf"
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+
+- file: path=/etc/nginx/sites-available state=directory mode=0755
+- file: path=/etc/nginx/sites-enabled state=directory mode=0755
+- file: path=/etc/nginx/modules-available state=directory mode=0755
+- file: path=/etc/nginx/modules-enabled state=directory mode=0755
+
+- name: "Template nginx init.d"
+  template: src=nginx.sh.j2 dest=/etc/init.d/nginx mode=0655
+
+- name: "Template nginx service"
+  template: src=nginx.service.j2 dest=/lib/systemd/system/nginx.service mode=0655
+
+
+- name: "Start nginx service"
+  shell: service nginx restart

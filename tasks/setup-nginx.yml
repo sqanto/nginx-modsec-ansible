@@ -1,0 +1,40 @@
+---
+- name: " presetup for modsecurity-{{ modsec_version }} install on Ubuntu 16.04 install threaded "
+  apt: name="{{ item  }}" update_cache=yes
+  with_items:
+    - make
+    - gcc
+    - automake
+    - autoconf
+    - libtool
+    - libpcre3
+    - libpcre3-dev
+    - libxml2
+    - libxml2-dev
+    - apache2-dev
+    - zlib1g-dev
+    - unzip
+    - libssl-dev
+  ignore_errors: True   
+
+- name: "Download MOD SEC for nginx "
+  get_url:
+    url: https://www.modsecurity.org/tarball/{{ modsec_version }}/modsecurity-{{ modsec_version }}.tar.gz
+    dest: /usr/src/modsecurity-{{ modsec_version }}.tar.gz
+    mode: 0655
+
+- command: tar -xvf /usr/src/modsecurity-{{ modsec_version }}.tar.gz -C /usr/src/
+
+- command: ./configure --enable-standalone-module --disable-mlogc
+  args:
+    chdir: /usr/src/modsecurity-{{ modsec_version }}/
+
+- make: chdir=/usr/src/modsecurity-{{ modsec_version }}/
+
+- name: "Take example active"
+  command: mv modsecurity.conf-recommended modsecurity.conf
+  args:
+    chdir: /usr/src/modsecurity-{{ modsec_version }}/
+  ignore_errors: True
+    
+
